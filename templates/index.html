@@ -30,32 +30,32 @@
     <script>
         const socket = io();
         let aesKey;
-
+    
         socket.on('connect', function() {
             socket.emit('join');
             importAESKey().then(() => {
-                console.log("AES key imported, ready to decrypt messages");
+                console.log("AES Key imported, ready to decrypt messages");  // Add this line
             });
         });
-
+    
         socket.on('message', function(data) {
-            console.log("Received encrypted message:", data.msg);
+            console.log("Received encrypted message:", data.msg);  // Add this line
             decryptAES(data.msg).then(decryptedMessage => {
-                console.log("Decrypted message:", decryptedMessage);
+                console.log("Decrypted message:", decryptedMessage);  // Add this line
                 $('#messages').append(`<p><strong>${data.username}</strong>: ${decryptedMessage}</p>`);
             }).catch(error => {
                 console.error('Decryption error:', error);
             });
         });
-
+    
         function sendMessage() {
             const message = $('#message-input').val();
-            console.log("Sending message:", message);
+            console.log("Sending message:", message);  // Add this line
             socket.emit('message', {msg: message});
             $('#message-input').val('');
         }
-
-        function importAESKey() {
+    
+        async function importAESKey() {
             const keyMaterial = new TextEncoder().encode('secret_aes_key');
             return crypto.subtle.digest('SHA-256', keyMaterial).then(hash => {
                 return crypto.subtle.importKey(
@@ -66,29 +66,29 @@
                     ['encrypt', 'decrypt']
                 ).then(key => {
                     aesKey = key;
-                    console.log("AES key imported successfully");
+                    console.log("AES key imported successfully");  // Add this line
                 });
             });
         }
-
+    
         async function decryptAES(encryptedHex) {
             if (!aesKey) {
                 await importAESKey();
             }
-
+    
             const encryptedBytes = hexToBytes(encryptedHex);
             const iv = encryptedBytes.slice(0, 16);
             const ct = encryptedBytes.slice(16);
-
+    
             const decrypted = await crypto.subtle.decrypt(
                 { name: 'AES-CBC', iv: iv },
                 aesKey,
                 ct
             );
-
+    
             return new TextDecoder().decode(decrypted);
         }
-
+    
         function hexToBytes(hex) {
             const bytes = [];
             for (let c = 0; c < hex.length; c += 2) {
@@ -97,5 +97,6 @@
             return new Uint8Array(bytes);
         }
     </script>
+    
 </body>
 </html>
