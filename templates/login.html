@@ -2,17 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Sign In</title>
+    <link rel="stylesheet" href="/static/css/login.css">
 </head>
 <body>
-    <h1>Login</h1>
-    <form method="POST" action="{{ url_for('login') }}">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username"><br>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password"><br>
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+    <div class="wrapper">
+        <form method="POST" action="{{ url_for('login') }}">
+            <h1>Sign In</h1>
+            <div class="input-box">
+                <input type="text" id="username" name="username" placeholder="Username" required>
+            </div>
+            <div class="input-box">
+                <input type="password" id="password" name="password" placeholder="Password" required>
+            </div>
+
+            <button type="submit" class="btn">Sign In</button>
+
+            <div class="register-link">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
+            </div>
+        </form>
+    </div>
 </body>
 </html>

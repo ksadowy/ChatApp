@@ -34,14 +34,14 @@
         socket.on('connect', function() {
             socket.emit('join');
             importAESKey().then(() => {
-                console.log("AES Key imported, ready to decrypt messages");  // Add this line
+                console.log("AES Key imported, ready to decrypt messages");
             });
         });
     
         socket.on('message', function(data) {
-            console.log("Received encrypted message:", data.msg);  // Add this line
+            console.log("Received encrypted message:", data.msg);
             decryptAES(data.msg).then(decryptedMessage => {
-                console.log("Decrypted message:", decryptedMessage);  // Add this line
+                console.log("Decrypted message:", decryptedMessage);
                 $('#messages').append(`<p><strong>${data.username}</strong>: ${decryptedMessage}</p>`);
             }).catch(error => {
                 console.error('Decryption error:', error);
@@ -50,7 +50,7 @@
     
         function sendMessage() {
             const message = $('#message-input').val();
-            console.log("Sending message:", message);  // Add this line
+            console.log("Sending message:", message);
             socket.emit('message', {msg: message});
             $('#message-input').val('');
         }
@@ -66,7 +66,7 @@
                     ['encrypt', 'decrypt']
                 ).then(key => {
                     aesKey = key;
-                    console.log("AES key imported successfully");  // Add this line
+                    console.log("AES key imported successfully");
                 });
             });
         }
