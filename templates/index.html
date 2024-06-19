@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Application</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+        #message-input {
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat Application</h1>
+    <p>Welcome, {{ username }}! <a href="{{ url_for('logout') }}">Logout</a></p>
+    <div id="messages"></div>
+    <input type="text" id="message-input" placeholder="Enter your message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const socket = io();
+        let aesKey;
+
+        socket.on('connect', function() {
+            socket.emit('join');
+            importAESKey().then(() => {
+                console.log("AES key imported, ready to decrypt messages");
+            });
+        });
+
+        socket.on('message', function(data) {
+            console.log("Received encrypted message:", data.msg);
+            decryptAES(data.msg).then(decryptedMessage => {
+                console.log("Decrypted message:", decryptedMessage);
+                $('#messages').append(`<p><strong>${data.username}</strong>: ${decryptedMessage}</p>`);
+            }).catch(error => {
+                console.error('Decryption error:', error);
+            });
+        });
+
+        function sendMessage() {
+            const message = $('#message-input').val();
+            console.log("Sending message:", message);
+            socket.emit('message', {msg: message});
+            $('#message-input').val('');
+        }
+
+        function importAESKey() {
+            const keyMaterial = new TextEncoder().encode('secret_aes_key');
+            return crypto.subtle.digest('SHA-256', keyMaterial).then(hash => {
+                return crypto.subtle.importKey(
+                    'raw',
+                    hash,
+                    { name: 'AES-CBC' },
+                    false,
+                    ['encrypt', 'decrypt']
+                ).then(key => {
+                    aesKey = key;
+                    console.log("AES key imported successfully");
+                });
+            });
+        }
+
+        async function decryptAES(encryptedHex) {
+            if (!aesKey) {
+                await importAESKey();
+            }
+
+            const encryptedBytes = hexToBytes(encryptedHex);
+            const iv = encryptedBytes.slice(0, 16);
+            const ct = encryptedBytes.slice(16);
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-CBC', iv: iv },
+                aesKey,
+                ct
+            );
+
+            return new TextDecoder().decode(decrypted);
+        }
+
+        function hexToBytes(hex) {
+            const bytes = [];
+            for (let c = 0; c < hex.length; c += 2) {
+                bytes.push(parseInt(hex.substr(c, 2), 16));
+            }
+            return new Uint8Array(bytes);
+        }
+    </script>
+</body>
+</html>
