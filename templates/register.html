@@ -9,15 +9,28 @@
     <div class="wrapper">
         <form method="POST" action="{{ url_for('register') }}">
             <h1>Sign Up</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flashes">
+                        {% for category, message in messages %}
+                            <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
             <div class="input-box">
                 <input type="text" id="username" name="username" placeholder="Username" required>
             </div>
             <div class="input-box">
+                <input type="email" id="email" name="email" placeholder="Email" required>
+            </div>
+            <div class="input-box">
                 <input type="password" id="password" name="password" placeholder="Password" required>
             </div>
-
+            <div class="input-box">
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
+            </div>
             <button type="submit" class="btn">Sign Up</button>
-
             <div class="login-link">
                 <p>Already have an account? <a href="{{ url_for('login') }}">Sign In</a></p>
             </div>

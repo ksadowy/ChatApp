@@ -28,6 +28,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
+    is_active = db.Column(db.Boolean, default=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -59,6 +60,8 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
+            user.is_active = True
+            db.session.commit()
             session['username'] = username
             return redirect(url_for('index'))
         return "Invalid username or password"
@@ -79,6 +82,12 @@ def register():
 @app.route('/logout')
 @login_required
 def logout():
+    if 'username' in session:
+        username = session['username']
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.is_active = False
+            db.session.commit()
     logout_user()
     return redirect(url_for('login'))
 

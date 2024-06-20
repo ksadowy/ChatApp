@@ -8,13 +8,24 @@
     <link rel="stylesheet" href="/static/css/chat.css">
 </head>
 <body>
-    <div class="wrapper">
-        <h1>Chat Application</h1>
-        <p>Welcome, {{ username }}! <a href="{{ url_for('logout') }}">Logout</a></p>
-        <div id="messages"></div>
-        <div class="input-container">
-            <input type="text" id="message-input" placeholder="Enter your message">
-            <button onclick="sendMessage()">Send</button>
+    <div class="wrapper-title">
+        <h1>Turbo epic chat room 😎</h1>
+        <div class="logout-link">
+            <p>Welcome, {{ username }}! <a href="{{ url_for('logout') }}">Logout</a></p>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="wrapper">
+            <div id="messages"></div>
+            <div class="input-container">
+                <input type="text" id="message-input" placeholder="Enter your message">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <div class="wrapper">
+            <h1>Online users</h1>
         </div>
     </div>
 
@@ -40,6 +51,13 @@
                 }
             }).catch(error => {
                 console.error('Decryption error:', error);
+            });
+        });
+
+        socket.on('activeUsers', function(users) {
+            $('#online-users').empty(); // Clear previous user list
+            users.forEach(user => {
+                $('#online-users').append(`<p>${user}</p>`);
             });
         });
     
