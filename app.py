@@ -150,9 +150,11 @@ def handle_join(data=None):
         username = current_user.username
         session['username'] = username
     join_room('chatroom')
-    send({'msg': f"{username} has entered the room."}, room='chatroom')
+    system_message = f"{username} has entered the room."
+    send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
+
 
 # Receiving messages from user, and delivering it to the rest
 @socketio.on('message')

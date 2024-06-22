@@ -9,6 +9,15 @@
     <div class="wrapper">
         <form method="POST" action="{{ url_for('login') }}">
             <h1>Sign In</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flashes">
+                        {% for category, message in messages %}
+                            <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
             <div class="input-box">
                 <input type="text" id="username" name="username" placeholder="Username" required>
             </div>

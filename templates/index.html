@@ -20,28 +20,26 @@
                     <option value="dark">Dark</option>
                     <option value="purple">Purple</option>
                 </select>
-        </div>
-        <div class="logout-link">
-            <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+            <div id="clock" class="navbar-item"></div> <!-- Clock here -->
+            <div class="logout-link">
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
         </div>
     </nav>
 
-    <div class="wrapper-title">
-        <h1>Turbo epic chat room 😎</h1>
-    </div>
-
     <div class="chat-container">
-        <div class="wrapper">
+        <div class="wrapper online-users-wrapper">
+            <h1>Online users</h1>
+            <div id="online-users"></div>
+        </div>
+
+        <div class="wrapper messages-wrapper">
             <div id="messages"></div>
             <div class="input-container">
                 <input type="text" id="message-input" placeholder="Enter your message">
                 <button onclick="sendMessage()">Send</button>
             </div>
-        </div>
-
-        <div class="wrapper">
-            <h1>Online users</h1>
-            <div id="online-users"></div>
         </div>
     </div>
 
@@ -58,25 +56,21 @@
         });
     
         socket.on('message', function(data) {
-            console.log("Received encrypted message:", data.msg);
-            decryptAES(data.msg).then(decryptedMessage => {
-                console.log("Decrypted message:", decryptedMessage);
-                if (data.username !== currentUser) {
-                    $('#messages').append(`<div class="message received"><strong>${data.username}</strong>: ${decryptedMessage}</div>`);
-                    $('#messages').scrollTop($('#messages')[0].scrollHeight);
-                }
-            }).catch(error => {
-                console.error('Decryption error:', error);
-            });
+            if (data.type === 'system') {
+                $('#messages').append(`<div class="message system"><em>${data.msg}</em></div>`);
+            } else {
+                console.log("Received encrypted message:", data.msg);
+                decryptAES(data.msg).then(decryptedMessage => {
+                    console.log("Decrypted message:", decryptedMessage);
+                    if (data.username !== currentUser) {
+                        $('#messages').append(`<div class="message received"><strong>${data.username}</strong>: ${decryptedMessage}</div>`);
+                        $('#messages').scrollTop($('#messages')[0].scrollHeight);
+                    }
+                }).catch(error => {
+                    console.error('Decryption error:', error);
+                });
+            }
         });
-        /*
-        socket.on('activeUsers', function(users) {
-            $('#online-users').empty();
-            users.forEach(user => {
-                $('#online-users').append(`<p>${user}</p>`);
-            });
-        });
-        */
 
         socket.on('activeUsers', function(users) {
             const userList = users.join(', ');
@@ -93,6 +87,12 @@
                 $('#message-input').val('');
             }
         }
+
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
     
         async function importAESKey() {
             const keyMaterial = new TextEncoder().encode('secret_aes_key');
@@ -114,19 +114,24 @@
             if (!aesKey) {
                 await importAESKey();
             }
-    
+
             const encryptedBytes = hexToBytes(encryptedHex);
+            if (encryptedBytes.length < 16) {
+                throw new Error("Invalid encrypted message length");
+            }
+
             const iv = encryptedBytes.slice(0, 16);
             const ct = encryptedBytes.slice(16);
-    
+
             const decrypted = await crypto.subtle.decrypt(
                 { name: 'AES-CBC', iv: iv },
                 aesKey,
                 ct
             );
-    
-            return new TextDecoder().decode(decrypted);
-        }
+
+    return new TextDecoder().decode(decrypted);
+}
+
     
         function hexToBytes(hex) {
             const bytes = [];
@@ -135,7 +140,6 @@
             }
             return new Uint8Array(bytes);
         }
-
 
         function changeTheme() {
             const theme = document.getElementById('theme').value;
@@ -154,8 +158,19 @@
 
         document.addEventListener('DOMContentLoaded', (event) => {
             document.body.classList.add('blue-theme');
+            startClock();
         });
 
-    </script>    
+        function startClock() {
+            const clock = document.getElementById('clock');
+            setInterval(() => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                clock.textContent = `${hours}:${minutes}:${seconds}`;
+            }, 1000);
+        }
+    </script>
 </body>
 </html>

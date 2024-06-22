@@ -116,3 +116,18 @@ body {
         background-position: 0% 50%;
     }
 }
+
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.flashes li {
+    background-color: rgba(52, 78, 172, 0.7);
+    color: #fff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+}

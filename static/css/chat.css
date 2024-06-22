@@ -57,6 +57,18 @@
     color: #fff;
 }
 
+.navbar-item, .logout-link {
+    margin-left: 20px;
+    display: flex;
+    align-items: center;
+}
+
+#clock {
+    font-size: 18px;
+    color: #fff;
+}
+
+
 .logout-link a {
     color: #fff;
     text-decoration: none;
@@ -71,7 +83,6 @@
     background-color: #fff;
     color: #333;
 }
-
 
 body {
     padding-top: 70px;
@@ -136,35 +147,16 @@ body.purple-theme .message.received {
     color: #333;
 }
 
-
-
-.wrapper-title {
-    width: 50%;
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, .3);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 0 10px rgba(0, 0, 0, .15);
-    color: #fff;
-    border-radius: 16px;
-    padding: 30px 40px;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.wrapper-title h1 {
-    font-size: 36px;
-}
-
 .chat-container {
     display: flex;
     justify-content: center;
     align-items: flex-start;
     width: 100%;
     max-width: 1200px;
+    margin-top: 20px;
 }
 
 .wrapper {
-    width: 45%;
     background: transparent;
     border: 2px solid rgba(255, 255, 255, .3);
     backdrop-filter: blur(20px);
@@ -172,18 +164,16 @@ body.purple-theme .message.received {
     color: #fff;
     border-radius: 16px;
     padding: 30px 40px;
-    margin-right: 20px;
     margin-bottom: 20px;
 }
 
-.wrapper:last-child {
-    margin-right: 0;
+.online-users-wrapper {
+    width: 25%;
+    margin-right: 80px;
 }
 
-.wrapper h1 {
-    font-size: 24px;
-    margin-bottom: 10px;
-    text-align: center;
+.messages-wrapper {
+    width: 70%;
 }
 
 #messages {
@@ -220,6 +210,20 @@ body.purple-theme .message.received {
     margin-right: auto;
     text-align: left;
 }
+
+.message.system {
+    background-color: #f1f1f1;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    max-width: 75%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 
 .input-container {
     display: flex;
@@ -261,6 +265,21 @@ button {
 
 #online-users p {
     margin-bottom: 5px;
+}
+
+/* Custom scrollbar */
+#messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+#messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+#messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
 }
 
 @keyframes color {
