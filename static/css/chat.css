@@ -13,10 +13,63 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+}
+
+/* BLUE THEME*/
+
+body.blue-theme {
     background: linear-gradient(45deg, #2C2C54, #474787, #5959a6, #7070be);
     background-size: 300% 300%;
     animation: color 12s ease-in-out infinite;
 }
+
+body.blue-theme .message.sent {
+    background-color: #d4f1f4;
+    color: #333;
+}
+
+body.blue-theme .message.received {
+    background-color: #f1d4d4;
+    color: #333;
+}
+
+/* DARK THEME */
+
+body.dark-theme {
+    background: linear-gradient(45deg, #1a1a1a, #333, #444, #555);
+    background-size: 300% 300%;
+    animation: color 12s ease-in-out infinite;
+}
+
+body.dark-theme .message.sent {
+    background-color: #333;
+    color: #fff;
+}
+
+body.dark-theme .message.received {
+    background-color: #555;
+    color: #fff;
+}
+
+/* PURPLE THEME */
+
+body.purple-theme {
+    background: linear-gradient(45deg, #340c64, #581880, #61207d, #87329f);
+    background-size: 300% 300%;
+    animation: color 12s ease-in-out infinite;
+}
+
+body.purple-theme .message.sent {
+    background-color: #e1bee7;
+    color: #333;
+}
+
+body.purple-theme .message.received {
+    background-color: #ce93d8;
+    color: #333;
+}
+
+
 
 .wrapper-title {
     width: 50%;
@@ -53,13 +106,13 @@ body {
 .chat-container {
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Align items at the top */
+    align-items: flex-start;
     width: 100%;
     max-width: 1200px;
 }
 
 .wrapper {
-    width: 45%; /* Adjust width for spacing between chat and online users */
+    width: 45%;
     background: transparent;
     border: 2px solid rgba(255, 255, 255, .3);
     backdrop-filter: blur(20px);
@@ -67,12 +120,12 @@ body {
     color: #fff;
     border-radius: 16px;
     padding: 30px 40px;
-    margin-right: 20px; /* Added margin-right for spacing */
+    margin-right: 20px;
     margin-bottom: 20px;
 }
 
 .wrapper:last-child {
-    margin-right: 0; /* Remove margin-right for the last wrapper to prevent extra spacing */
+    margin-right: 0;
 }
 
 .wrapper h1 {
@@ -97,6 +150,9 @@ body {
     border-radius: 12px;
     max-width: 75%;
     clear: both;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .message.sent {

@@ -13,6 +13,15 @@
         <div class="logout-link">
             <p>Welcome, {{ username }}! <a href="{{ url_for('logout') }}">Logout</a></p>
         </div>
+
+        <div class="theme-selector">
+            <label for="theme"> Choose a theme: </label>
+            <select id="theme" onchange="changeTheme()">
+                <option value="blue">Blue</option>
+                <option value="dark">Dark</option>
+                <option value="purple">Purple</option>
+            </select>
+        </div>
     </div>
 
     <div class="chat-container">
@@ -26,13 +35,14 @@
 
         <div class="wrapper">
             <h1>Online users</h1>
+            <div id="online-users"></div>
         </div>
     </div>
 
     <script>
         const socket = io();
         let aesKey;
-        const currentUser = '{{ username }}';  // Use template to get the current username
+        const currentUser = '{{ username }}';
     
         socket.on('connect', function() {
             socket.emit('join');
@@ -53,12 +63,18 @@
                 console.error('Decryption error:', error);
             });
         });
-
+        /*
         socket.on('activeUsers', function(users) {
-            $('#online-users').empty(); // Clear previous user list
+            $('#online-users').empty();
             users.forEach(user => {
                 $('#online-users').append(`<p>${user}</p>`);
             });
+        });
+        */
+
+        socket.on('activeUsers', function(users) {
+            const userList = users.join(', ');
+            $('#online-users').text(userList);
         });
     
         function sendMessage() {
@@ -113,6 +129,27 @@
             }
             return new Uint8Array(bytes);
         }
+
+
+        function changeTheme() {
+            const theme = document.getElementById('theme').value;
+            document.body.className = '';
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+            }
+            else if (theme === 'purple') {
+                document.body.classList.add('purple-theme');
+            }
+            else
+            {
+                document.body.classList.add('blue-theme');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.body.classList.add('blue-theme');
+        });
+
     </script>    
 </body>
 </html>
