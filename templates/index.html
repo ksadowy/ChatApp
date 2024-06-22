@@ -8,20 +8,26 @@
     <link rel="stylesheet" href="/static/css/chat.css">
 </head>
 <body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="welcome-message">
+                Welcome, {{ username }}!
+            </div>
+            <div class="theme-selector">
+                <label for="theme"> Choose a theme: </label>
+                <select id="theme" onchange="changeTheme()">
+                    <option value="blue">Blue</option>
+                    <option value="dark">Dark</option>
+                    <option value="purple">Purple</option>
+                </select>
+        </div>
+        <div class="logout-link">
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+
     <div class="wrapper-title">
         <h1>Turbo epic chat room 😎</h1>
-        <div class="logout-link">
-            <p>Welcome, {{ username }}! <a href="{{ url_for('logout') }}">Logout</a></p>
-        </div>
-
-        <div class="theme-selector">
-            <label for="theme"> Choose a theme: </label>
-            <select id="theme" onchange="changeTheme()">
-                <option value="blue">Blue</option>
-                <option value="dark">Dark</option>
-                <option value="purple">Purple</option>
-            </select>
-        </div>
     </div>
 
     <div class="chat-container">
