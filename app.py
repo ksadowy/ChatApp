@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, join_room, leave_room, send
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from flask_wtf import CSRFProtect
 import rsa
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -11,6 +12,8 @@ import os
 import re
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
+
 app.secret_key = os.urandom(24)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
@@ -82,7 +85,6 @@ def login():
         
         flash('Invalid username or password', 'danger')
     return render_template('login.html')
-
 
 # Register
 @app.route('/register', methods=['GET', 'POST'])
@@ -159,7 +161,6 @@ def handle_join(data=None):
     send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
-
 
 # Receiving messages from user, and delivering it to the rest
 @socketio.on('message')
