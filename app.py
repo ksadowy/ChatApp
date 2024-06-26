@@ -12,6 +12,7 @@ import re
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
@@ -63,21 +64,25 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        print(f"Attempting login for user: {username}")
+
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
+            print(f"Login successful for user: {username}")
             login_user(user)
             user.is_active = True
             db.session.commit()
 
             session['username'] = username
             session.modified = True
-            
-            flash('Login successful', 'success')
-            return redirect(url_for('index'))
+
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
         
         flash('Invalid username or password', 'danger')
     return render_template('login.html')
+
 
 # Register
 @app.route('/register', methods=['GET', 'POST'])
