@@ -143,6 +143,8 @@ def logout():
         if user:
             user.is_active = False
             db.session.commit()
+    system_message = f"{username} has left the room."
+    send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     logout_user()
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
@@ -179,7 +181,8 @@ def handle_disconnect():
         if user:
             user.is_active = False
             db.session.commit()
-    send({'msg': f"{session['username']} has left the room."}, room='chatroom')
+    system_message = f"{username} has left the room."
+    send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
 
