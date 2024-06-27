@@ -10,6 +10,7 @@ from Crypto.Util.Padding import pad, unpad
 import hashlib
 import os
 import re
+import datetime
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
@@ -18,10 +19,11 @@ app.secret_key = os.urandom(24)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, manage_session=False)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -73,12 +75,12 @@ def login():
 
         if user and bcrypt.check_password_hash(user.password, password):
             print(f"Login successful for user: {username}")
-            login_user(user)
+            login_user(user, remember=True)
             user.is_active = True
             db.session.commit()
 
             session['username'] = username
-            session.modified = True
+            session.permanent = True
 
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
@@ -146,6 +148,7 @@ def logout():
     system_message = f"{username} has left the room."
     send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     logout_user()
+    session.pop('username', None)
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
     return redirect(url_for('login'))
@@ -164,13 +167,14 @@ def handle_join(data=None):
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
 
-# Receiving messages from user, and delivering it to the rest
+# Receiving messages from user, and delivering it to the rest of chat participants
 @socketio.on('message')
 def handle_message(data):
     print(f"Received message: {data['msg']} from {session['username']}")
     encrypted_message = encrypt_aes(aes_key, data['msg'])
     print(f"Encrypted message: {encrypted_message.hex()}")
-    send({'msg': encrypted_message.hex(), 'username': session['username']}, room='chatroom')
+    timestamp = datetime.datetime.now().strftime('%H:%M')
+    send({'msg': encrypted_message.hex(), 'username': session['username'], 'timestamp': timestamp}, room='chatroom')
 
 # User leaves the chat
 @socketio.on('disconnect')
@@ -182,6 +186,7 @@ def handle_disconnect():
             user.is_active = False
             db.session.commit()
     system_message = f"{username} has left the room."
+    print(f'{username} has left the room')
     send({'msg': system_message, 'username': 'System', 'type': 'system'}, room='chatroom')
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')

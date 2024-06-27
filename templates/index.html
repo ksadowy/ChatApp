@@ -44,26 +44,28 @@
     </div>
 
     <script>
+        // SocketIO initialization
         const socket = io();
         let aesKey;
         const currentUser = '{{ username }}';
     
         socket.on('connect', function() {
             socket.emit('join');
+            // AES Key import
             importAESKey().then(() => {
-                console.log("AES Key imported, ready to decrypt messages");
             });
         });
-    
+        
+        // Receiving messages
         socket.on('message', function(data) {
             if (data.type === 'system') {
                 $('#messages').append(`<div class="message system"><em>${data.msg}</em></div>`);
+                $('#messages').scrollTop($('#messages')[0].scrollHeight);
             } else {
-                console.log("Received encrypted message:", data.msg);
                 decryptAES(data.msg).then(decryptedMessage => {
-                    console.log("Decrypted message:", decryptedMessage);
+                    const timestamp = data.timestamp;
                     if (data.username !== currentUser) {
-                        $('#messages').append(`<div class="message received"><strong>${data.username}</strong>: ${decryptedMessage}</div>`);
+                        $('#messages').append(`<div class="message received"><strong>${data.username}</strong>: ${decryptedMessage} <span class="timestamp">${timestamp}</span></div>`);
                         $('#messages').scrollTop($('#messages')[0].scrollHeight);
                     }
                 }).catch(error => {
@@ -80,20 +82,20 @@
         function sendMessage() {
             const message = $('#message-input').val();
             if (message.trim() !== "") {
-                console.log("Sending message:", message);
-                $('#messages').append(`<div class="message sent"><strong>You</strong>: ${message}</div>`);
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                $('#messages').append(`<div class="message sent"><strong>You</strong>: ${message} <span class="timestamp">${timestamp}</span></div>`);
                 $('#messages').scrollTop($('#messages')[0].scrollHeight);
                 socket.emit('message', {msg: message, username: currentUser});
                 $('#message-input').val('');
             }
         }
-
         document.getElementById('message-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-    
+        
+        // AES Key import
         async function importAESKey() {
             const keyMaterial = new TextEncoder().encode('secret_aes_key');
             return crypto.subtle.digest('SHA-256', keyMaterial).then(hash => {
@@ -105,11 +107,11 @@
                     ['encrypt', 'decrypt']
                 ).then(key => {
                     aesKey = key;
-                    console.log("AES key imported successfully");
                 });
             });
         }
-    
+        
+        // Decrypting AES
         async function decryptAES(encryptedHex) {
             if (!aesKey) {
                 await importAESKey();
@@ -129,8 +131,8 @@
                 ct
             );
 
-    return new TextDecoder().decode(decrypted);
-}
+            return new TextDecoder().decode(decrypted);
+        }
 
     
         function hexToBytes(hex) {

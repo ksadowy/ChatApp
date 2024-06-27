@@ -111,6 +111,16 @@ body.blue-theme .message.received {
     color: #333;
 }
 
+body.blue-theme .message.system {
+    background-color: #a3bcee;
+    color: #333;
+}
+
+body.blue-theme .timestamp {
+    color: rgba(42, 39, 39, 0.7);
+}
+
+
 /* DARK THEME */
 
 body.dark-theme {
@@ -129,6 +139,16 @@ body.dark-theme .message.received {
     color: #fff;
 }
 
+body.dark-theme .message.system {
+    background-color: #444;
+    color: #ccc;
+}
+
+body.dark-theme .timestamp {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+
 /* PURPLE THEME */
 
 body.purple-theme {
@@ -146,6 +166,16 @@ body.purple-theme .message.received {
     background-color: #ce93d8;
     color: #333;
 }
+
+body.purple-theme .message.system {
+    background-color: #9c27b0;
+    color: #fff;
+}
+
+body.purple-theme .timestamp {
+    color: rgba(255, 255, 255, 0.7);
+}
+
 
 .chat-container {
     display: flex;
@@ -205,15 +235,19 @@ body.purple-theme .message.received {
 }
 
 .message.received {
-    background-color: #f1d4d4;
+    background-color: #3b3c86;
     color: #333;
     margin-right: auto;
     text-align: left;
 }
 
+.timestamp {
+    font-size: 0.8em;
+    color: rgba(42, 39, 39, 0.7);
+    margin-left: 10px;
+}
+
 .message.system {
-    background-color: #f1f1f1;
-    color: #666;
     font-style: italic;
     text-align: center;
     padding: 8px 12px;
