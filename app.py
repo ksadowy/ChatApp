@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_socketio import SocketIO, join_room, leave_room, send
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -15,15 +15,14 @@ import datetime
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 
-app.secret_key = os.urandom(24)
-app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-socketio = SocketIO(app, manage_session=False)
+socketio = SocketIO(app, manage_session=True)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -57,6 +56,17 @@ def decrypt_aes(key, data):
     cipher = AES.new(key, AES.MODE_CBC, iv)
     pt = unpad(cipher.decrypt(ct), AES.block_size)
     return pt.decode('utf-8')
+
+@app.route('/get_public_key', methods=['GET'])
+def get_public_key():
+    return jsonify({'public_key': public_key.save_pkcs1().decode()})
+
+@app.route('/set_encrypted_aes_key', methods=['POST'])
+def set_encrypted_aes_key():
+    encrypted_aes_key = request.json['encrypted_aes_key']
+    aes_key = rsa.decrypt(encrypted_aes_key, private_key)
+    session['aes_key'] = aes_key
+    return 'Key received', 200
 
 @app.route('/')
 @login_required

@@ -134,6 +134,21 @@
             return new TextDecoder().decode(decrypted);
         }
 
+        async function fetchPublicKey() {
+            const response = await fetch('/get_public_key')
+            const data = await response.json();
+            return rsa.importKey(data.public_key);
+        }
+
+        async function sendEncryptedAESKey() {
+            const publicKey = await fetchPublicKey();
+            const encryptedAESKey = rsa.encrypt(aesKey, publicKey);
+            await fetch('/set_encrypted_aes_key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ encrypted_aes_key: encryptedAESKey })
+            });
+        }
     
         function hexToBytes(hex) {
             const bytes = [];
