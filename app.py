@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_wtf import CSRFProtect
+from pyDH import DiffieHellman
 import rsa
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -15,24 +16,38 @@ import datetime
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 
+# Generowanie losowego sekretnego klucza do zabezpieczenia sesji aplikacji
 app.config['SECRET_KEY'] = os.urandom(24)
+
+# Konfiguracja bazy danych SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
+
+# Inicjalizacja obiektów
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 socketio = SocketIO(app, manage_session=True)
 
+# Inicjalizacja oraz podpięcie menadżera logowania do aplikacji
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# AES Key
+# Inicjalizacja metody Diffie Hellmana do wymiany kluczy
+dh = DiffieHellman()
+server_public_key = dh.gen_public_key() # Generowanie klucza publicznego
+server_private_key = dh.get_private_key() # Generowanie klucza prywatnego
+shared_secrets = {} # Słownik do przechowywania wspólnych sekretów
+
+# Generowanie pary kluczy RSA
 public_key, private_key = rsa.newkeys(2048)
+
+# Generowanie klucza AES za pomocą SHA256
 aes_key = hashlib.sha256(b'secret_aes_key').digest()
 
-# DB - User
+# Model użytkownika w bazie danych
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -40,40 +55,53 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(100), nullable=False)
     is_active = db.Column(db.Boolean, default=False)
 
-# Helper functions for AES encrypt & decrypt
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Funkcja do szyfrowania danych za pomocą AES
 def encrypt_aes(key, data):
+    """
+    Tworzenie nowego obiektu w trybie CBC:
+    Każdy blok jest szyfrowany z użyciem wyniku poprzedniego.
+    Dzięki temu, nawet przy wysyłaniu tych samych wiadomości, ich szyfrowane wersje wyglądają inaczej.
+    Przez to, że każda część jest powiązana z poprzednią, znacznie trudniej jest złamać szyfr.
+    """
     cipher = AES.new(key, AES.MODE_CBC)
-    ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), AES.block_size))
-    return cipher.iv + ct_bytes
+    ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), AES.block_size)) # Szyfrowanie danych z paddingiem
+    return cipher.iv + ct_bytes # Zwracanie wektora inicjalizacyjnego razem z zaszyfrowanymi danymi
 
+# Funkcja do deszyfrowania danych za pomocą AES
 def decrypt_aes(key, data):
-    iv = data[:16]
-    ct = data[16:]
+    iv = data[:16] # Pobieranie wektora inicjalizacyjnego
+    ct = data[16:] # Pobieranie zaszyfrowanych danych
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    pt = unpad(cipher.decrypt(ct), AES.block_size)
-    return pt.decode('utf-8')
+    pt = unpad(cipher.decrypt(ct), AES.block_size) # Deszyfrowanie danych z usunięciem paddingu
+    return pt.decode('utf-8') # Zwracanie odszyfrowanych danych jako string
 
+# Endpoint do pobierania klucza publicznego RSA
 @app.route('/get_public_key', methods=['GET'])
 def get_public_key():
-    return jsonify({'public_key': public_key.save_pkcs1().decode()})
+    return jsonify({'public_key': public_key.save_pkcs1().decode()}) # Zwracanie klucza publicznego w postaci JSON
 
+# Endpoint do ustawiania zaszyfrowanego klucza AES
 @app.route('/set_encrypted_aes_key', methods=['POST'])
 def set_encrypted_aes_key():
-    encrypted_aes_key = request.json['encrypted_aes_key']
-    aes_key = rsa.decrypt(encrypted_aes_key, private_key)
-    session['aes_key'] = aes_key
+    client_public_key = int(request.json['client_public_key']) # Pobieranie klucza publicznego klienta
+    dh_server = DiffieHellman(private_key=server_private_key) # Inicjalizacja metody Diffie Hellmana z kluczem prywatnym serwera
+    shared_secret = dh_server.gen_shared_key(client_public_key) # Generowanie wspólnego sekretu
+    aes_key = hashlib.sha256(shared_secret.encode()).digest() # Generowanie klucza AES z hasha wspólnego sekretu
+    session['aes_key'] = aes_key # Przechowywanie klucza AES w sesji
     return 'Key received', 200
+
 
 @app.route('/')
 @login_required
 def index():
     return render_template('index.html', username=current_user.username)
 
-# Log in
+# Funkcja odpowiedzialna za logowanie użytkownika
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -98,7 +126,7 @@ def login():
         flash('Invalid username or password', 'danger')
     return render_template('login.html')
 
-# Register
+# Funkcja odpowiedzialna za rejestrację nowych użytkowników
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -107,37 +135,37 @@ def register():
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
-        # Unique username check
+        # Sprawdzenie, czy użytkownik o podanej nazwie już istnieje
         user_username_exists = User.query.filter_by(username=username).first()
         if user_username_exists:
             flash('Username already exists', 'danger')
             return redirect(url_for('register'))
         
-        # Unique email check
+        # Sprawdzenie, czy użytkownik o podanym mailu już istnieje
         user_email_exists = User.query.filter_by(email=email).first()
         if user_email_exists:
             flash('Email already in use', 'danger')
             return redirect(url_for('register'))
         
-        # Email format validation
+        # Walidacja formatu e-maila
         email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
         if not re.match(email_regex, email):
             flash('Invalid email address', 'danger')
             return redirect(url_for('register'))
         
-        # Identical passwords check
+        # Sprawdzenie zgodności hasła
         if password != confirm_password:
             flash('Passwords do not match', 'danger')
             return redirect(url_for('register'))
         
-        # Check for strong password
+        # Walidacja hasła (min, 8 znaków, cyfra oraz znak specjalny)
         password_regex = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
         if not re.match(password_regex, password):
             flash('Password must be at least 8 characters long and include a number and a special character', 'danger')
             return redirect(url_for('register'))
         
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = User(username=username, email=email, password=hashed_password)
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8') # Hashowanie hasła
+        new_user = User(username=username, email=email, password=hashed_password) # Tworzenie nowego użytkownika w bazie danych
         db.session.add(new_user)
         db.session.commit()
         flash('Registration successful! You can now log in.', 'success')
@@ -145,7 +173,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html')
 
-# Log out
+# Wylogowanie użytkownika
 @app.route('/logout')
 @login_required
 def logout():
@@ -163,7 +191,7 @@ def logout():
     socketio.emit('activeUsers', active_users, room='chatroom')
     return redirect(url_for('login'))
 
-# Joining the chat room
+# Obsługa dołączania do pokoju czatu
 @socketio.on('join')
 def handle_join(data=None):
     if 'username' in session:
@@ -177,16 +205,16 @@ def handle_join(data=None):
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
 
-# Receiving messages from user, and delivering it to the rest of chat participants
+# Obsługa odbierania wiadomości od użytkownika
 @socketio.on('message')
 def handle_message(data):
     print(f"Received message: {data['msg']} from {session['username']}")
-    encrypted_message = encrypt_aes(aes_key, data['msg'])
-    print(f"Encrypted message: {encrypted_message.hex()}")
+    encrypted_message = encrypt_aes(aes_key, data['msg']) # Szyfrowanie wiadomości za pomocą AES
+    print(f"Encrypted message: {encrypted_message.hex()}") # Wyświetlanie zaszyfrowanej wiadomości w formacie heksadecymalnym
     timestamp = datetime.datetime.now().strftime('%H:%M')
     send({'msg': encrypted_message.hex(), 'username': session['username'], 'timestamp': timestamp}, room='chatroom')
 
-# User leaves the chat
+# Obsługa 
 @socketio.on('disconnect')
 def handle_disconnect():
     if 'username' in session:
@@ -201,11 +229,11 @@ def handle_disconnect():
     active_users = get_active_users()
     socketio.emit('activeUsers', active_users, room='chatroom')
 
-# Check for active users in DB (is_active == 1)
+# Funkcja do pobierania listy aktywnych użytkowników
 def get_active_users():
     return [user.username for user in User.query.filter_by(is_active=True).all()]
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        db.create_all() # Tworzenie tabel w bazie danych, jeśli nie istnieją
     socketio.run(app, debug=True)

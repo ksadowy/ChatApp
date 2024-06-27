@@ -8,6 +8,7 @@
 <body>
     <div class="wrapper">
         <form method="POST" action="{{ url_for('login') }}">
+            <!-- Token CSRF zabezpieczający formularz -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <h1>Sign In</h1>
             {% with messages = get_flashed_messages(with_categories=true) %}

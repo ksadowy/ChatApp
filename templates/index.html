@@ -44,24 +44,26 @@
     </div>
 
     <script>
-        // SocketIO initialization
+        // Inicjalizacja Socket.IO
         const socket = io();
         let aesKey;
         const currentUser = '{{ username }}';
     
+        // Połączenie Socket.IO
         socket.on('connect', function() {
             socket.emit('join');
-            // AES Key import
             importAESKey().then(() => {
             });
         });
         
-        // Receiving messages
+        // Odbieranie wiadomości
         socket.on('message', function(data) {
             if (data.type === 'system') {
+                // Obsługa wiadomości systemowych
                 $('#messages').append(`<div class="message system"><em>${data.msg}</em></div>`);
                 $('#messages').scrollTop($('#messages')[0].scrollHeight);
             } else {
+                // Odszyfrowywanie i wyświetlenie wiadomości użytkownika
                 decryptAES(data.msg).then(decryptedMessage => {
                     const timestamp = data.timestamp;
                     if (data.username !== currentUser) {
@@ -74,11 +76,13 @@
             }
         });
 
+        // Odbieranie listy aktywnych użytkowników
         socket.on('activeUsers', function(users) {
             const userList = users.join(', ');
             $('#online-users').text(userList);
         });
     
+        // Wysyłanie wiadomości
         function sendMessage() {
             const message = $('#message-input').val();
             if (message.trim() !== "") {
@@ -95,67 +99,71 @@
             }
         });
         
-        // AES Key import
+        // Import klucza AES
         async function importAESKey() {
+            // Przetwarzanie klucza AES na odpowiedni format
             const keyMaterial = new TextEncoder().encode('secret_aes_key');
             return crypto.subtle.digest('SHA-256', keyMaterial).then(hash => {
                 return crypto.subtle.importKey(
-                    'raw',
-                    hash,
-                    { name: 'AES-CBC' },
-                    false,
-                    ['encrypt', 'decrypt']
+                    'raw', // Typ klucza
+                    hash, // Zahashowany klucz
+                    { name: 'AES-CBC' }, // Algorytm klucza
+                    false, // Eksportowalność klucza
+                    ['encrypt', 'decrypt'] // Operacje dozwolone na kluczu
                 ).then(key => {
-                    aesKey = key;
+                    aesKey = key; // Zapisanie zaimportowanego klucza
                 });
             });
         }
         
-        // Decrypting AES
+        // Odszyfrowywanie wiaddomości
         async function decryptAES(encryptedHex) {
             if (!aesKey) {
-                await importAESKey();
+                await importAESKey(); // Jeśli klucz nie jest zaimportowany, importuj go
             }
 
-            const encryptedBytes = hexToBytes(encryptedHex);
+            const encryptedBytes = hexToBytes(encryptedHex); // Konwersja zakodowanego tekstu na bajty
             if (encryptedBytes.length < 16) {
-                throw new Error("Invalid encrypted message length");
+                throw new Error("Invalid encrypted message length"); // Sprawdzenie długości zaszyfrowanej wiadomości
             }
 
-            const iv = encryptedBytes.slice(0, 16);
-            const ct = encryptedBytes.slice(16);
+            const iv = encryptedBytes.slice(0, 16); // Wyodrębnienie wektora inicjalizacyjnego
+            const ct = encryptedBytes.slice(16); // Wyodrębnienie zaszyfrowanego tekstu
 
             const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-CBC', iv: iv },
-                aesKey,
-                ct
+                { name: 'AES-CBC', iv: iv }, // Parametry deszyfracji
+                aesKey, // Klucz AES
+                ct // Zaszyfrowany tekst
             );
 
-            return new TextDecoder().decode(decrypted);
+            return new TextDecoder().decode(decrypted); // Zwrócenie odszyfrowanej wiadomości
         }
 
+        // Pobranie klucza publicznego
         async function fetchPublicKey() {
             const response = await fetch('/get_public_key')
-            const data = await response.json();
-            return rsa.importKey(data.public_key);
+            const data = await response.json(); // Konwersja odpowiedzi na JSON
+            return rsa.importKey(data.public_key); // Import klucza publicznego
         }
 
+        // Wysyłanie zaszyfrowanego klucza AES
         async function sendEncryptedAESKey() {
-            const publicKey = await fetchPublicKey();
-            const encryptedAESKey = rsa.encrypt(aesKey, publicKey);
+            const publicKey = await fetchPublicKey(); // Pobranie klucza publicznego
+            const encryptedAESKey = rsa.encrypt(aesKey, publicKey); // Zaszyfrowanie klucza AES kluczem publicznym
             await fetch('/set_encrypted_aes_key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ encrypted_aes_key: encryptedAESKey })
+                body: JSON.stringify({ encrypted_aes_key: encryptedAESKey }) // Wysłanie zaszyfrowanego klucza AES na serwer
             });
         }
     
+        // Konwersja tekstu na bajty
         function hexToBytes(hex) {
             const bytes = [];
             for (let c = 0; c < hex.length; c += 2) {
                 bytes.push(parseInt(hex.substr(c, 2), 16));
             }
-            return new Uint8Array(bytes);
+            return new Uint8Array(bytes); // Zwrócenie bajtów
         }
 
         function changeTheme() {
